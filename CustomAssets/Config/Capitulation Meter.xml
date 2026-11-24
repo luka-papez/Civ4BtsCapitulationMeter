@@ -12,12 +12,17 @@
 
 	<options id="CapitulationMeter" file="Capitulation Meter.ini">
 		<section id="CapitulationMeter">
-			<option id="Mode"
-					type="int" default="2"
-					get="getMode" set="setMode"
-					label="Panel Mode [ALT + CTRL + V]"
-					help="0 = hidden, 1 = one line per enemy, 2 = full details."/>
-			<option id="Alert" key="Show Alert"
+			<option id="Enabled" key="Show Panel"
+					type="boolean" default="True"
+					get="isEnabled" set="setEnabled"
+					label="Show Panel [ALT + CTRL + V]"
+					help="Shows how close each AI you are at war with is to capitulating."/>
+			<option id="ShowDetails" key="Show Details"
+					type="boolean" default="True"
+					get="isShowDetails" set="setShowDetails"
+					label="Full Details"
+					help="Lists every condition. When unchecked, shows one line per enemy."/>
+			<option id="ShowAlert" key="Show Alert"
 					type="boolean" default="True"
 					get="isShowAlert" set="setShowAlert"
 					label="Capitulation Alert"

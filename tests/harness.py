@@ -125,6 +125,7 @@ try:
         def isGlobeviewUp(s): return False
     calls = []
     class Screen:
+        def getYResolution(s): return 1080
         def __getattr__(s, n):
             def f(*a): calls.append((n, a))
             return f
@@ -135,16 +136,38 @@ try:
         TradeableItems=a, DenialTypes=Denial, GameOptionTypes=a, InterfaceMessageTypes=a, ColorTypes=lambda x: x,
         InterfaceVisibility=a, CyGInterfaceScreen=lambda *x: Screen(), PanelStyles=a, HitTestTypes=a, FontTypes=a, WidgetTypes=a)
     class Opt:
-        mode = 2
-        def getMode(s): return s.mode
-        def setMode(s, v): s.mode = v
-        def isShowAlert(s): return True
+        enabled = details = alert = True
+        def isEnabled(s): return s.enabled
+        def setEnabled(s, v): s.enabled = v
+        def isShowDetails(s): return s.details
+        def setShowDetails(s, v): s.details = v
+        def isShowAlert(s): return s.alert
         def getPanelX(s): return 5
         def getPanelY(s): return 150
     class G: CapitulationMeter = Opt()
     traces = []
-    mod("BugCore", game=G()); mod("BugOptions", write=lambda: None)
-    mod("BugUtil", trace=lambda m: traces.append(m + "\n" + traceback.format_exc()))
+    class Ini:
+        reads = 0
+        def __init__(s, filename): s.config = W(); s.config.filename = filename
+        def isLoaded(s): return True
+        def fileExists(s): return True
+        def read(s): s.reads += 1
+    class Opts:
+        ini = Ini(None)
+        def getFile(s, id): assert id == "CapitulationMeter"; return s.ini
+    mod("BugCore", game=G()); mod("BugOptions", write=lambda: None, getOptions=Opts)
+    warns = []
+    mod("BugUtil", trace=lambda m: traces.append(m + "\n" + traceback.format_exc()), warn=warns.append)
+    added = []
+    class Tab:
+        def __init__(s, name): s.name = name
+        def getName(s): return s.name
+        def createMiscellaneousPanel(s, screen, panel): added.append(("original", panel))
+        def addSpacer(s, screen, panel, name): pass
+        def addLabel(s, screen, panel, name, title): pass
+        def addCheckbox(s, screen, panel, name): added.append((name, panel))
+    class OptScreen: tabs = [Tab("Other"), Tab("General"), Tab("Last")]
+    mod("BugOptionsScreen", getOptionsScreen=lambda: OptScreen)
     class CMI:
         def interfaceScreen(s): return 7
     mod("CvMainInterface", CvMainInterface=CMI); mod("CvScreenEnums", MAIN_INTERFACE=0); mod("CvUtil", FONT_LEFT_JUSTIFY=0)
@@ -164,7 +187,7 @@ try:
     def show(title):
         r, imp_ = rep()
         say("--- " + title)
-        for l in M.buildLines(r, imp_, 2):
+        for l in M.buildLines(r, imp_, 2, 99):
             say("   " + l)
         return r
     S.succ = {(0, 1): 50, (1, 0): 12}; S.warcount = 5
@@ -210,9 +233,34 @@ try:
     S.denial = 5; show("all checks fine, engine refuses"); S.denial = -1
     S.feud = False; show("no Feudalism"); S.feud = True
     S.vassal[1] = 2; show("enemy is a vassal"); del S.vassal[1]
+    # several wars: T1 (nothing missing) before T2 (much missing); T3 is T2's vassal
+    war(0, 2); war(0, 3); S.vassal[3] = 2; S.talk = True; S.denial = 5
+    S.war[(1, 2)] = S.war[(2, 1)] = 1
+    r, imp_ = rep()
+    full = M.buildLines(r, imp_, 2, 99)
+    n1 = [len(M.formatReport(x, 2)) for x in r if x.name == u"T1"][0]
+    n2 = [len(M.formatReport(x, 2)) for x in r if x.name == u"T2"][0]
+    heads = [l for l in full if l.find(">T") >= 0]
+    check("all wars listed, closest first", [l.split(">")[1][:2] for l in heads], [u"T1", u"T2", u"T3"])
+    check("all in full", len(full), n1 + n2 + 1)
+    check("exact fit", len(M.buildLines(r, imp_, 2, n1 + n2 + 1)), n1 + n2 + 1)
+    check("one line short collapses T2", len(M.buildLines(r, imp_, 2, n1 + n2)), n1 + 2)
+    check("tiny screen all compact", len(M.buildLines(r, imp_, 2, 3)), 3)
+    cut = M.buildLines(r, imp_, 2, 2); check("too many", (len(cut), cut[1].find(u"and 2 more") > 0), (2, True))
+    check("never too long", max([len(M.buildLines(r, imp_, 2, k)) - k for k in range(1, 40)]) <= 0, True)
+    for k in [(0, 2), (2, 0), (0, 3), (3, 0), (1, 2), (2, 1)]: del S.war[k]
+    del S.vassal[3]; S.denial = -1
     # drawing
-    M.init(); M.init()
+    M.init(); M.wrapMainInterface()
+    check("new settings file reopened", Opts.ini.reads, 1)
+    Opts.ini = Ini("x.ini"); M.reopenNewSettings(); check("existing one left alone", Opts.ini.reads, 0)
     check("wrap", CMI().interfaceScreen(), 7)
+    for t in OptScreen.tabs: t.createMiscellaneousPanel("scr", t.name)
+    check("options only on General tab", added, [("original", "Other"), ("original", "General"),
+        ("CapitulationMeter__Enabled", "General"), ("CapitulationMeter__ShowDetails", "General"),
+        ("CapitulationMeter__ShowAlert", "General"), ("original", "Last")])
+    tabs, OptScreen.tabs = OptScreen.tabs, []
+    M.extendOptionsScreen(); check("no General tab only warns", len(warns), 1); OptScreen.tabs = tabs
     S.talk = False
     def tick():
         M.forceRefresh(); M.onGameUpdate(())
@@ -223,9 +271,19 @@ try:
     n = len(calls); tick(); check("no redraw when unchanged", len(calls), n)
     S.vis = False; M.onGameUpdate(()); check("hidden in city screen", M.g_iLinesShown, 0)
     S.vis = True; tick(); check("shown again", M.g_iLinesShown > 0, True)
-    M.cycleMode(()); tick(); check("compact", (M.CapOpt.mode, M.g_iLinesShown), (1, 1))
-    M.cycleMode(()); tick(); check("off", (M.CapOpt.mode, M.g_iLinesShown), (0, 0))
-    M.cycleMode(()); tick(); check("full", M.CapOpt.mode, 2)
+    M.cycleMode(()); tick(); check("compact", (M.getMode(), M.g_iLinesShown), (1, 1))
+    M.cycleMode(()); tick(); check("off", (M.getMode(), M.g_iLinesShown), (0, 0))
+    M.cycleMode(()); tick(); check("full", (M.getMode(), M.g_iLinesShown > 1), (2, True))
+    # settings page: hide the panel, and hide it even during the AI's turn
+    M.CapOpt.enabled = False; tick(); check("unchecked hides", M.g_iLinesShown, 0)
+    M.CapOpt.enabled = True; tick(); check("checked shows", M.g_iLinesShown > 0, True)
+    Player.isTurnActive = lambda s: False
+    M.CapOpt.enabled = False; tick(); check("hides on AI turn", M.g_iLinesShown, 0)
+    Player.isTurnActive = lambda s: True
+    # hidden panel still alerts, unless alerts are off too
+    M.g_readyTeams = {}; tick(); check("hidden still alerts", len(msgs), 2)
+    M.CapOpt.alert = False; M.g_readyTeams = {}; tick(); check("alerts off", len(msgs), 2)
+    M.CapOpt.alert = True; M.CapOpt.enabled = True; tick()
     CMI().interfaceScreen(); check("reset after rebuild", (M.g_bPanelCreated, M.g_iLinesShown), (False, 0))
     S.war = {}; tick(); check("peace hides", M.g_iLinesShown, 0)
     check("broken / traces", (M.g_bBroken, traces), (False, []))

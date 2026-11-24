@@ -10,6 +10,7 @@
 ##
 ## Read-only: changes nothing in the game. Disabled in network multiplayer.
 ##
+## Settings are on the General tab of the BUG options screen.
 ## Alt+Ctrl+V cycles: full details / one line per enemy / hidden.
 ##
 ## Copyright (C) 2026 Capitulation Meter contributors
@@ -41,6 +42,7 @@ AI_OFFER_WAR_TURNS = 10
 
 REFRESH_SECONDS = 1.0
 LINE_HEIGHT = 17
+BOTTOM_HUD_HEIGHT = 180
 PANEL = "CapMeterPanel"
 
 GREEN = "80,255,80,255"
@@ -408,12 +410,31 @@ def formatReport(report, iMode):
 				% (report.iWarTurns, AI_OFFER_WAR_TURNS), GREY))
 	return lines
 
-def buildLines(reports, impossible, iMode):
+def sortKey(report):
+	"""Closest to capitulating first."""
+	return (not (report.bAgrees and report.bTalks), not report.bAgrees, len(report.missing()), report.name)
+
+def buildLines(reports, impossible, iMode, iMaxLines):
+	"""One block per enemy. Those that do not fit in full are shown as one line."""
+	reports = [(sortKey(r), r) for r in reports]
+	reports.sort()
+	blocks = [formatReport(r, MODE_COMPACT) for (key, r) in reports]
+	blocks.extend([[colored(u"%s: %s" % (name, reason), GREY)] for (name, reason) in impossible])
+	iFree = iMaxLines - len(blocks)
+	if iMode == MODE_FULL:
+		for i in range(len(reports)):
+			full = formatReport(reports[i][1], MODE_FULL)
+			iFree -= len(full) - 1
+			if iFree < 0:
+				break
+			blocks[i] = full
+	if len(blocks) > iMaxLines:
+		iHidden = len(blocks) - (iMaxLines - 1)
+		blocks = blocks[:iMaxLines - 1]
+		blocks.append([colored(u"... and %d more" % iHidden, GREY)])
 	lines = []
-	for report in reports:
-		lines.extend(formatReport(report, iMode))
-	for name, reason in impossible:
-		lines.append(colored(u"%s: %s" % (name, reason), GREY))
+	for block in blocks:
+		lines.extend(block)
 	return lines
 
 def doAlerts(reports):
@@ -446,6 +467,11 @@ def isVisible():
 			and not CyInterface().isCityScreenUp()
 			and not CyEngine().isGlobeviewUp())
 
+def maxLines():
+	"""How many lines fit between the panel's top edge and the bottom HUD."""
+	iHeight = getScreen().getYResolution() - BOTTOM_HUD_HEIGHT - CapOpt.getPanelY() - 10
+	return max(3, iHeight // LINE_HEIGHT)
+
 def draw(lines):
 	global g_bPanelCreated, g_iLinesShown, g_drawnKey
 	iX = CapOpt.getPanelX()
@@ -477,22 +503,32 @@ def draw(lines):
 	g_iLinesShown = len(lines)
 	g_drawnKey = key
 
+def getMode():
+	if not CapOpt.isEnabled():
+		return MODE_OFF
+	if CapOpt.isShowDetails():
+		return MODE_FULL
+	return MODE_COMPACT
+
 def update():
 	"""Brings the panel up to date."""
 	pGame = gc.getGame()
 	ePlayer = pGame.getActivePlayer()
-	iMode = CapOpt.getMode()
+	iMode = getMode()
 	if ePlayer < 0 or pGame.isNetworkMultiPlayer() or not gc.getPlayer(ePlayer).isAlive():
 		draw([])
 		return
+	bShow = iMode != MODE_OFF and isVisible()
+	if not bShow:
+		draw([])
 	if not gc.getPlayer(ePlayer).isTurnActive():
+		return
+	if not bShow and not CapOpt.isShowAlert():
 		return
 	reports, impossible = getReports()
 	doAlerts(reports)
-	if iMode == MODE_OFF or not isVisible():
-		draw([])
-	else:
-		draw(buildLines(reports, impossible, iMode))
+	if bShow:
+		draw(buildLines(reports, impossible, iMode, maxLines()))
 
 
 ## ---- BUG hooks -------------------------------------------------------------
@@ -536,14 +572,59 @@ def onGameLoaded(argsList=None):
 
 def cycleMode(argsList=None):
 	"""Shortcut: full -> compact -> off -> full."""
-	iMode = CapOpt.getMode() - 1
-	if iMode < MODE_OFF:
-		iMode = MODE_FULL
-	CapOpt.setMode(iMode)
+	iMode = getMode()
+	if iMode == MODE_FULL:
+		CapOpt.setShowDetails(False)
+	elif iMode == MODE_COMPACT:
+		CapOpt.setEnabled(False)
+	else:
+		CapOpt.setEnabled(True)
+		CapOpt.setShowDetails(True)
 	BugOptions.write()
 	forceRefresh()
 
+def addOptions(tab, screen, panel):
+	"""Adds our checkboxes to a panel of the BUG options screen."""
+	tab.addSpacer(screen, panel, "CapitulationMeter")
+	tab.addLabel(screen, panel, "CapitulationMeter", "Capitulation Meter:")
+	tab.addCheckbox(screen, panel, "CapitulationMeter__Enabled")
+	tab.addCheckbox(screen, panel, "CapitulationMeter__ShowDetails")
+	tab.addCheckbox(screen, panel, "CapitulationMeter__ShowAlert")
+
+def extendOptionsScreen():
+	"""Appends our options to the Misc section of BUG's General tab."""
+	import BugOptionsScreen
+	for tab in BugOptionsScreen.getOptionsScreen().tabs:
+		if tab.getName() == "General" and hasattr(tab, "createMiscellaneousPanel"):
+			original = tab.createMiscellaneousPanel
+			def createMiscellaneousPanel(screen, panel):
+				original(screen, panel)
+				try:
+					addOptions(tab, screen, panel)
+				except:
+					BugUtil.trace("CapitulationMeter - cannot add options")
+			tab.createMiscellaneousPanel = createMiscellaneousPanel
+			return
+	BugUtil.warn("CapitulationMeter - no General tab in the options screen")
+
+def reopenNewSettings():
+	"""
+	BUG never saves changes to a settings file in the session that created it, because
+	the ConfigObj it made has no file name. Reading the new file again fixes that.
+	"""
+	ini = BugOptions.getOptions().getFile("CapitulationMeter")
+	if ini.isLoaded() and ini.fileExists() and ini.config.filename is None:
+		ini.read()
+
 def init():
+	try:
+		reopenNewSettings()
+	except:
+		BugUtil.trace("CapitulationMeter - cannot reopen settings")
+	extendOptionsScreen()
+	wrapMainInterface()
+
+def wrapMainInterface():
 	"""Wraps CvMainInterface.interfaceScreen() to learn when the main screen is rebuilt."""
 	cls = CvMainInterface.CvMainInterface
 	if hasattr(cls, "capMeterWrapped"):

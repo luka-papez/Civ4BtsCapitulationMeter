@@ -69,9 +69,14 @@ To remove it, delete that line.
 ## Use
 
 - The panel appears at the top left while you are at war with an AI.
+- Every AI you are at war with is listed, closest to capitulating first. If they don't all fit,
+  the rest shrink to one line each.
 - `Alt+Ctrl+V` cycles full details, one line per enemy, and hidden.
 - You get a message when an enemy becomes willing to capitulate.
-- Position and alert settings are in `Capitulation Meter.ini` in BUG's `UserSettings` folder.
+- **To hide it or change settings**, open the BUG options (`Alt+Ctrl+O`), *General* tab, and look
+  for *Capitulation Meter* below the *Misc* options. You can turn the panel, the full details and
+  the alert on or off there. The alert works even when the panel is hidden.
+- The panel position is in `Capitulation Meter.ini` in BUG's `UserSettings` folder.
 
 The headline verdict is the game's own answer. The lines below it re-implement the game's
 formula to explain the verdict. The "max" power is approximate, because the world average moves
