@@ -1,6 +1,6 @@
 # Capitulation Meter
 
-A small add-on for the [BUG Mod](https://forums.civfanatics.com/forums/civ4-bug-mod.196/)
+A small add-on for the [BUG Mod](https://forums.civfanatics.com/threads/download-bug-and-bat-here.274636/)
 for Civilization IV: Beyond the Sword. While you are at war, it shows on the main screen how
 close each AI is to capitulating to you, and which conditions are still missing.
 
@@ -17,35 +17,54 @@ Montezuma: no (1 missing)
 This shows information the game normally hides, so it is arguably cheating. It only reads
 game data and changes nothing. It turns itself off in network multiplayer.
 
-## Requirements
-
-- Civilization IV: Beyond the Sword 3.19
-- BUG Mod installed in `CustomAssets` (written against BUG 4.4)
-
-Mods that ignore `CustomAssets` (`NoCustomAssets = 1`) do not load it. Numbers may also be
-wrong in mods that ship their own DLL, because they can change the rules.
-
 ## Install
 
-From a PowerShell window in this folder:
+You need **Beyond the Sword 3.19** and the **BUG Mod**
+([download](https://forums.civfanatics.com/threads/download-bug-and-bat-here.274636/)).
+Written for BUG 4.4. Install BUG first if you don't have it.
 
-```powershell
-powershell -ExecutionPolicy Bypass -File .\install.ps1
-```
+1. [Download the zip](https://github.com/luka-papez/Civ4BtsCapitulationMeter/archive/refs/heads/main.zip).
+2. **Extract it** anywhere. Don't run it from inside the zip.
+3. Close the game and double-click **`install.bat`**. If Windows shows a "protected your PC"
+   warning, click *More info*, then *Run anyway*.
+4. Start the game and load a save where you are **at war with an AI**. The panel appears at the
+   top left. Existing saves work.
 
-The script copies two files into `My Games\Beyond the Sword\CustomAssets`, adds one line to BUG's
-`Config\init.xml`, and keeps a backup of it as `init.xml.bak`. Pass `-CustomAssets "<path>"` if
-yours is elsewhere.
+To **update**, do the same with the new zip. To **remove** it, double-click `uninstall.bat`.
 
-By hand:
+The installer copies two files, adds one line to BUG's `Config\init.xml`, and saves the original
+as `init.xml.bak`.
 
-1. Copy the `CustomAssets` folder here over your own.
-2. In `CustomAssets\Config\init.xml`, add this below `<load mod="MoreCiv4lerts"/>`:
+<details>
+<summary><b>Install by hand</b></summary>
+
+1. Open `Documents\My Games\Beyond the Sword`. It should already contain a `CustomAssets` folder
+   with BUG in it.
+2. Copy the `CustomAssets` folder from the zip there and let Windows merge the two. It adds two
+   files and replaces none of BUG's.
+3. Open `CustomAssets\Config\init.xml` in Notepad. Find this line:
+   ```xml
+   <load mod="MoreCiv4lerts"/>
+   ```
+   and add this one below it:
    ```xml
    <load mod="Capitulation Meter"/>
    ```
+4. Save the file and start the game.
 
-To uninstall, remove that line.
+To remove it, delete that line.
+
+</details>
+
+### Not working?
+
+| Problem | Fix |
+|---|---|
+| "BUG Mod was not found" | BUG is missing or installed elsewhere. If it is elsewhere, drag the folder that contains BUG's `Config` and `python` folders onto `install.bat`. |
+| No panel in the game | It only shows while you are at war with an AI, on the main map. Press `Alt+Ctrl+V` in case it is hidden. |
+| No BUG features either | BUG itself is not loading. Fix that first. |
+| Playing another mod | Mods with `NoCustomAssets = 1` in their `.ini` ignore it. Mods with their own DLL may show wrong numbers, because they can change the rules. |
+| Python error | Please open an issue with the text of the error. |
 
 ## Use
 
