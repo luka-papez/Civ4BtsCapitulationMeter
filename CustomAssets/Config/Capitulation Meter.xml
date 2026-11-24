@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="ISO-8859-1" ?>
+<!--
+	Capitulation Meter
+
+	Shows how close each AI you are fighting is to capitulating.
+	Settings are saved in "Capitulation Meter.ini" in BUG's UserSettings folder.
+-->
+<mod id="CapitulationMeter"
+	 module="CapitulationMeter"
+	 name="Capitulation Meter"
+	 version="1.0">
+
+	<options id="CapitulationMeter" file="Capitulation Meter.ini">
+		<section id="CapitulationMeter">
+			<option id="Mode"
+					type="int" default="2"
+					get="getMode" set="setMode"
+					label="Panel Mode [ALT + CTRL + V]"
+					help="0 = hidden, 1 = one line per enemy, 2 = full details."/>
+			<option id="Alert" key="Show Alert"
+					type="boolean" default="True"
+					get="isShowAlert" set="setShowAlert"
+					label="Capitulation Alert"
+					help="Shows a message when an enemy becomes willing to capitulate."/>
+			<option id="PanelX" key="Panel X"
+					type="int" default="5"
+					get="getPanelX" set="setPanelX"
+					label="Panel X"
+					help="Left edge of the panel in pixels."/>
+			<option id="PanelY" key="Panel Y"
+					type="int" default="150"
+					get="getPanelY" set="setPanelY"
+					label="Panel Y"
+					help="Top edge of the panel in pixels."/>
+		</section>
+	</options>
+
+	<init/>
+	<event type="gameUpdate" function="onGameUpdate"/>
+	<event type="OnLoad" function="onGameLoaded"/>
+	<event type="GameStart" function="onGameLoaded"/>
+	<shortcut key="Alt Ctrl V" function="cycleMode"/>
+
+</mod>
