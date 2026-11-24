@@ -4,15 +4,12 @@ A small add-on for the [BUG Mod](https://forums.civfanatics.com/threads/download
 for Civilization IV: Beyond the Sword. While you are at war, it shows on the main screen how
 close each AI is to capitulating to you, and which conditions are still missing.
 
-```
-Montezuma: no (1 missing)
-  - War success 50, need 52 (theirs 12)
-  + Their power 400, max ~593 (by world average)
-  + Land 30% / pop 26% of yours (one under 50%)
-```
+![The panel during a war with the Dutch](docs/panel.jpg)
 
-> **Status:** passes offline tests on the game's Python 2.4 with a mocked game world.
-> It has not been confirmed in a real game yet.
+Green `+` lines are conditions that are met, red `-` lines are still missing.
+
+> **Status:** tested in a real game on the **Steam version** of Beyond the Sword 3.19 with
+> BUG 4.4. See [Testing](#testing) for what was and was not covered.
 
 This shows information the game normally hides, so it is arguably cheating. It only reads
 game data and changes nothing. It turns itself off in network multiplayer.
@@ -78,6 +75,8 @@ To remove it, delete that line.
   the alert on or off there. The alert works even when the panel is hidden.
 - The panel position is in `Capitulation Meter.ini` in BUG's `UserSettings` folder.
 
+![The Capitulation Meter options in BUG](docs/options.jpg)
+
 The headline verdict is the game's own answer. The lines below it re-implement the game's
 formula to explain the verdict. The "max" power is approximate, because the world average moves
 as units are built and lost.
@@ -102,7 +101,38 @@ Catherine and De Gaulle, for example.
 The AI only offers capitulation by itself after more than 10 turns of war. You can propose it
 as soon as they will talk.
 
-## Tests
+## Testing
+
+### In the real game
+
+Tested on 2026-11-24 with the Steam version of Beyond the Sword 3.19 (build 128100), BUG 4.4
+(build 2220) in `CustomAssets`, on Windows 10 with a 3840x2160 desktop. No other edition (GOG, retail) has
+been tried.
+
+Procedure, using a 1924 AD save with one war, against the Dutch:
+
+| Step | Expected | Result |
+|---|---|---|
+| Start the game through Steam and load the save | Loads without Python errors | Pass |
+| Look at the main map | Panel at the top left, covering no other controls | Pass |
+| Press `Alt+Ctrl+V` three times | One line, hidden, full details | Pass |
+| Open BUG options (`Alt+Ctrl+O`), *General* tab | Three Capitulation Meter checkboxes | Pass |
+| Untick *Show Panel*, click *Exit* | Panel gone, `Show Panel = False` in the `.ini` | Pass |
+| Press `Alt+Ctrl+V` | Panel is back, settings are on again | Pass |
+| Contact the enemy from the scoreboard | He talks, and the panel does not say "Refuses to talk" | Pass |
+| Open the trade table and hover *Capitulation* | Red, with a reason that fits the red lines in the panel | Pass: "We're doing fine on our own", the refusal for being too strong or too large |
+| Open a city, then close it | Panel hides, then returns | Pass |
+
+Not covered in a real game yet:
+
+- An enemy that is willing to capitulate, and the alert for it
+- Several wars at once
+- The panel staying hidden after restarting the game
+
+To repeat this with your own save, use the same steps. The trade table is the one that matters:
+*Capitulation* must be selectable when the panel says "WILL CAPITULATE", and red when it says no.
+
+### Offline tests
 
 `tests\run.ps1` runs the module in the game's own `python24.dll` against a mocked game. It needs
 the game installed and 32-bit PowerShell:
