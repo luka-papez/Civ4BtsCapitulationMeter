@@ -363,6 +363,23 @@ def check(bOkay, text):
 		return colored(u"  + " + text, GREEN)
 	return colored(u"  - " + text, RED)
 
+def explainPower(report):
+	"""What sets the power limit, and what moves it."""
+	lines = []
+	if report.bAverageLimits:
+		lines.append(u"limit: average civ (kill their units, yours barely help)")
+		if report.boosts:
+			lines.append(u"limit raised by neighbour: %s" % u", ".join(report.boosts))
+	else:
+		lines.append(u"limit: your strength (more units or war success raise it)")
+		if report.bWorstEnemy:
+			lines.append(u"limit cut 25%: you are their worst enemy")
+		if report.rival:
+			lines.append(u"limit cut: %s did more damage than you" % report.rival)
+	if report.iMultiplier != POWER_MULTIPLIER:
+		lines.append(u"leader trait: %+d%% resistance" % (report.iMultiplier - POWER_MULTIPLIER))
+	return lines
+
 def formatReport(report, iMode):
 	lines = []
 	if report.bAgrees and report.bTalks:
@@ -382,22 +399,15 @@ def formatReport(report, iMode):
 
 	lines.append(check(report.bSuccess, u"War success %d, need %d (theirs %d)"
 			% (report.iMySuccess, report.iSuccessNeeded, report.iTheirSuccess)))
-	if report.bAverageLimits:
-		rule = u"world average"
+	if report.bPower:
+		lines.append(check(True, u"Their power %d, limit about %d" % (report.iPower, report.iPowerMax)))
 	else:
-		rule = u"your power"
-	lines.append(check(report.bPower, u"Their power %d, max ~%d (by %s)"
-			% (report.iPower, report.iPowerMax, rule)))
-	if report.iMultiplier != POWER_MULTIPLIER:
-		lines.append(colored(u"     leader trait: %+d%% resistance" % (report.iMultiplier - POWER_MULTIPLIER), GREY))
-	if not report.bAverageLimits and report.bWorstEnemy:
-		lines.append(colored(u"     you are their worst enemy (-25%)", GREY))
-	if not report.bAverageLimits and report.rival:
-		lines.append(colored(u"     %s did more damage than you" % report.rival, GREY))
-	if report.bAverageLimits and report.boosts:
-		lines.append(colored(u"     max raised by neighbour: %s" % u", ".join(report.boosts), GREY))
-	lines.append(check(report.bSize, u"Land %d%% / pop %d%% of yours (one under %d%%)"
-			% (report.iLandPercent, report.iPopPercent, report.iLandMax)))
+		lines.append(check(False, u"Their power %d, must drop to about %d" % (report.iPower, report.iPowerMax)))
+		lines.extend([colored(u"     " + text, GREY) for text in explainPower(report)])
+	size = u"Land %d%%, pop %d%% of yours" % (report.iLandPercent, report.iPopPercent)
+	if not report.bSize:
+		size += u" (get either below %d%%)" % report.iLandMax
+	lines.append(check(report.bSize, size))
 	for blocker in report.blockers:
 		lines.append(check(False, blocker))
 	if not report.bTalks:

@@ -198,6 +198,12 @@ try:
     check("success", (r.iMySuccess, r.iSuccessNeeded, r.bSuccess), (50, 52, False))
     check("power", (r.bPower, r.bAverageLimits, r.iPowerMax), (True, True, (100 * 831 - 1) // 140))
     check("boosts", r.boosts, [u"T2"])
+    txt = u"\n".join(M.formatReport(r, 2))
+    check("power met stays short", (txt.find(u"limit about 593") > 0, txt.find(u"limit:") < 0), (True, True))
+    check("size met has no hint", txt.find(u"get either") < 0, True)
+    r.bPower = False; r.iMultiplier = 190
+    txt = u"\n".join(M.formatReport(r, 2))
+    check("limited by average", [txt.find(s) > 0 for s in (u"must drop to about 593", u"limit: average civ", u"neighbour: T2", u"+50% resistance", u"your strength")], [True] * 4 + [False])
     check("size", (r.iLandPercent, r.iPopPercent, r.bSize), (30, 26, True))
     S.succ[(0, 1)] = 52
     check("success boundary", rep()[0][0].bSuccess, True)
@@ -224,10 +230,13 @@ try:
     S.succ[(2, 1)] = 90; S.worst = u"T0"
     r = show("rival did more + worst enemy")[0]
     check("rival", (r.rival, r.iPowerMax), (u"T2", (100 * ((2 * (1019 * 3 // 4) // 3) + 1) - 1) // 140))
+    r.bPower = False; txt = u"\n".join(M.formatReport(r, 2))
+    check("limited by you", [txt.find(s) > 0 for s in (u"limit: your strength", u"limit cut 25%:", u"T2 did more damage", u"average civ")], [True] * 3 + [False])
     S.locked[(1, 2)] = 1; r = rep()[0][0]; check("locked peace", r.blockers, [u"They cannot make peace with T2"])
     S.locked = {}; S.worst = ""; S.succ.pop((2, 1)); del S.war[(1, 2)]; del S.war[(2, 1)]
     # size: both >= 50% -> refuse; one under -> ok
     S.land[1] = 100; S.pop[1] = 75
+    check("size hint", u"\n".join(M.formatReport(rep()[0][0], 2)).find(u"of yours (get either below 50%)") > 0, True)
     check("size refuse at 50/50", rep()[0][0].bSize, False); S.pop[1] = 74
     check("size ok one under", rep()[0][0].bSize, True); S.land[1] = 60; S.pop[1] = 40
     S.denial = 5; show("all checks fine, engine refuses"); S.denial = -1

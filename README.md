@@ -78,7 +78,7 @@ To remove it, delete that line.
 ![The Capitulation Meter options in BUG](docs/options.jpg)
 
 The headline verdict is the game's own answer. The lines below it re-implement the game's
-formula to explain the verdict. The "max" power is approximate, because the world average moves
+formula to explain the verdict. The power limit is approximate, because the world average moves
 as units are built and lost.
 
 ## How capitulation works
