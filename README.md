@@ -4,7 +4,7 @@ A small add-on for the [BUG Mod](https://forums.civfanatics.com/threads/download
 for Civilization IV: Beyond the Sword. While you are at war, it shows on the main screen how
 close each AI is to capitulating to you, and which conditions are still missing.
 
-![The panel during a war with the Dutch](docs/panel.jpg)
+![The panel during wars with Portugal, Korea and America](docs/panel.jpg)
 
 Green `+` lines are conditions that are met, red `-` lines are still missing.
 
@@ -123,10 +123,14 @@ Procedure, using a 1924 AD save with one war, against the Dutch:
 | Open the trade table and hover *Capitulation* | Red, with a reason that fits the red lines in the panel | Pass: "We're doing fine on our own", the refusal for being too strong or too large |
 | Open a city, then close it | Panel hides, then returns | Pass |
 
+On 2026-11-25, a 1993 AD save of the same game was loaded with wars against Portugal, Korea and
+Portugal's vassal America. The panel listed all three, closest to capitulating first, with America
+as a vassal. That is the screenshot at the top. The trade table was not checked again.
+
 Not covered in a real game yet:
 
 - An enemy that is willing to capitulate, and the alert for it
-- Several wars at once
+- More wars than fit on the screen
 - The panel staying hidden after restarting the game
 
 To repeat this with your own save, use the same steps. The trade table is the one that matters:
